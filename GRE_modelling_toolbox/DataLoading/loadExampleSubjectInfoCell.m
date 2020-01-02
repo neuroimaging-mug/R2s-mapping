@@ -18,9 +18,6 @@ function [ par_c ] = loadExampleSubjectInfoCell(  )
     %coild combination (phi0z cancels out)
     par.Gphi0z = 0; 
     
-    %Registers images to single acquistion
-    par.register_maps = 0; 
-    
     %Here only caculations are performed for a single slice
     par.sgl_sag_slc = 0; 
     
@@ -31,7 +28,7 @@ function [ par_c ] = loadExampleSubjectInfoCell(  )
     par.navi_only = 1; 
     
     %Parmater for siennax semgenation
-    par.bSienna  = 1; 
+    par.bSienna  = 0; 
     
     %detrends phase evolving of the navigator signal. 
     %This is due to the phase of the ADC. Phase increases linear with the
@@ -39,8 +36,8 @@ function [ par_c ] = loadExampleSubjectInfoCell(  )
     %phase flucuations for phase corretion. 
     par.bdetrend = 1; 
     
-    %corresponding T1-file (nifti)
-    par.T1_file = 't1_mpr_ns_sag_iso_s002';
+    %corresponding T1-file (nifti) if available
+    par.T1_file = '';
     
     %pulse properties of the RF pulse
     pulse.type = 'sinc-hanning'; 
@@ -68,15 +65,14 @@ function [ par_c ] = loadExampleSubjectInfoCell(  )
     src_raw_data = [par.path_pwd, '/data_input/Example_1_R2s/', par.meas_id, '/dat_file/'];
     par.dat_path{1} = [src_raw_data, 'meas_MID00395_FID105233_Gs_pos_myRF_normal_navi_18E_TR_2_5s_1x1x3mm_BW_500'];
     par.dat_path{2} = [src_raw_data, 'meas_MID00396_FID105234_Gs_neg_myRF_normal_navi_18E_TR_2_5s_1x1x3mm_BW_500'];
+        
+    par.nii_file{1} = [  par.src_nii , 'Gs_pos_myRF_normal_navi_18E_TR_2_5_s011.nii.gz'];
+    par.nii_file{2} = [  par.src_nii , 'Gs_neg_myRF_normal_navi_18E_TR_2_5_s013.nii.gz'];
     
-    par.nii_file{1} = [  par.src_nii , 'Gs_pos_myRF_normal_navi_18E_TR_2_5_s011.nii'];
-    par.nii_file{2} = [  par.src_nii , 'Gs_neg_myRF_normal_navi_18E_TR_2_5_s013.nii'];
     
     par.bB1_map = 1;
     par.bB1_map_new = 1;
     par.B1_path = [B1_new_folder, 'B1Map_prospectivelySubsampled_subject_14_meas_MID00397_FID105235_BS_undersampled_R2s'];
-    par.register_maps = 0; 
-    par.idx_nii = [10,12]; %index of the magnitude images the dcmheaders 
     par_c{1} = par; 
 
 
