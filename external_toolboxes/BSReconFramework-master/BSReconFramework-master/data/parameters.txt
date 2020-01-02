@@ -1,0 +1,3 @@
+Tpulse	10	ms
+deltaf	4	kHz
+alphaBS	1000	deg
