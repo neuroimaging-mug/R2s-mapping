@@ -68,6 +68,10 @@ function [ par_c ] = loadExampleSubjectInfoCell(  )
     src_raw_data = [par.path_pwd, '/data_input/Example_1_R2s/', par.meas_id, '/dat_file/'];
     par.dat_path{1} = [src_raw_data, 'meas_MID00395_FID105233_Gs_pos_myRF_normal_navi_18E_TR_2_5s_1x1x3mm_BW_500'];
     par.dat_path{2} = [src_raw_data, 'meas_MID00396_FID105234_Gs_neg_myRF_normal_navi_18E_TR_2_5s_1x1x3mm_BW_500'];
+    
+    par.nii_file{1} = [  par.src_nii , 'Gs_pos_myRF_normal_navi_18E_TR_2_5_s011.nii'];
+    par.nii_file{2} = [  par.src_nii , 'Gs_neg_myRF_normal_navi_18E_TR_2_5_s013.nii'];
+    
     par.bB1_map = 1;
     par.bB1_map_new = 1;
     par.B1_path = [B1_new_folder, 'B1Map_prospectivelySubsampled_subject_14_meas_MID00397_FID105235_BS_undersampled_R2s'];
