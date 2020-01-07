@@ -13,6 +13,19 @@
 % Website: http://www.neuroimaging.com
 % Januray 2020; Last revision: 02-Januray-2020
 
+%% Before running the example please make sure that you have dowloaded the 
+%provided input data from zenodo: 
+ 
+%https://doi.org/10.5281/zenodo.3600319
+ 
+% Please download data and unzip it in the main folder. Also, the results
+% are available, which allows to just load the results. 
+
+if ~exist([pwd, '/data_input'], 'dir'); 
+   error('Please download input data from https://doi.org/10.5281/zenodo.3600319 and extract it into the current directory'); 
+end
+
+
 %% Set paths
 
 addpath(genpath('external_toolboxes')); 
