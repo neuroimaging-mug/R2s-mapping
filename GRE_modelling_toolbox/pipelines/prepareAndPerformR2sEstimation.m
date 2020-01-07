@@ -12,17 +12,17 @@ function [ data ] = prepareAndPerformR2sEstimation( par )
 
     %% Convert the dcm files from to nifi (to get nifi header) and load 
     %headers 
+    
    
-    if exist([par.src_nii, 'dcmHeaders.mat'], 'file') ~= 2
+    %Here just a short version with all necessary data is loaded. If you
+    %have dcm data you can generate nifitis with dicm2nii and a
+    %dcm_headers strcut. 
+    if exist([par.src_nii, 'dcmHeaders_short.mat'], 'file') ~= 2
         dicm2nii(par.src_dcm, par.src_nii); 
     end
     %load header
-    header_all = load([par.src_nii, 'dcmHeaders']);
-    header_all = header_all.h; 
-
-    %get file names from header 
-    file_names = fieldnames(header_all);
-
+    tmp = load([par.src_nii, 'dcmHeaders_short']);
+    dcm_header = tmp.dcm_header_short; 
     
     data = [];    
     
@@ -31,7 +31,7 @@ function [ data ] = prepareAndPerformR2sEstimation( par )
 
         %create a nifti template for saving estimated maps and corrected
         %raw data 
-        tmp = load_untouch_nii([par.src_nii, file_names{par.idx_nii(i)}, '.nii.gz']); 
+        tmp = load_untouch_nii( par.nii_file{i}); 
         
         %store header information
         tmp.hdr.dime.datatype = 16; 
@@ -47,9 +47,8 @@ function [ data ] = prepareAndPerformR2sEstimation( par )
         nii_template = tmp; 
 
 
-         %% Load and combine raw data with and without navigator echoes
+        %% Load and combine raw data with and without navigator echoes
 
-        dcm_header = getfield(header_all, file_names{par.idx_nii(i)});
 
         navi = {'navi_off', 'navi_on'};
 
@@ -59,15 +58,14 @@ function [ data ] = prepareAndPerformR2sEstimation( par )
 
 
         flip_angles = ['alpha_', num2str(dcm_header.FlipAngle), 'deg']; 
-
-        path_results = [par.path_pwd, '/results/R2s/', par.meas_id, '/', par.acquisitions{i} ,'/']; 
+    
         S_uncorr_path = [par.path_pwd, '/results/R2s/', par.meas_id, '/', par.acquisitions{i}, '/', navi{1},'/', flip_angles, '/', fwhm_str, '/raw_images/']; 
         S_corr_path =  [par.path_pwd, '/results/R2s/', par.meas_id, '/', par.acquisitions{i}, '/', navi{2},'/', flip_angles, '/', fwhm_str, '/raw_images/']; 
 
         %Raw data is laoded and corrected with the navigator echo.
         %Corrected raw data is combined with the method proposed by Luo et
         %al
-        [Scomb_corr, Scomb_raw  ] = prepareAndCorrectRawData( par.dat_path{i}, S_uncorr_path, S_corr_path, par.bdetrend, nii_headers);
+        [Scomb_corr, Scomb_raw  ] = prepareAndCorrectRawData( par.dat_path{i}, S_uncorr_path, S_corr_path, par.bdetrend, nii_headers, par.bloadExample);
 
         S_navi_on = double(Scomb_corr); 
         S_navi_off = double(Scomb_raw);
@@ -148,11 +146,9 @@ function [ data ] = prepareAndPerformR2sEstimation( par )
               fwhm_str(fwhm_str == '.') = '_'; 
               fwhm_str = ['fwhm_', fwhm_str, '_mm']; 
 
-              if par.register_maps == 1 && i==1
-                  path_results = [par.path_pwd, '/results/R2s/', par.meas_id, '/', par.acquisitions{i}, '_reg/', navi{k},'/', flip_angles, '/', fwhm_str]; 
-              else
-                  path_results = [par.path_pwd, '/results/R2s/', par.meas_id, '/', par.acquisitions{i}, '/', navi{k},'/', flip_angles, '/', fwhm_str]; 
-              end
+        
+              path_results = [par.path_pwd, '/results/R2s/', par.meas_id, '/', par.acquisitions{i}, '/', navi{k},'/', flip_angles, '/', fwhm_str]; 
+       
 
               if exist(path_results, 'dir') == 0
                   mkdir(path_results); 
@@ -163,33 +159,13 @@ function [ data ] = prepareAndPerformR2sEstimation( par )
 
               z0_vary = z0; 
 
-              %start R2s estimation depending on paramters
-              if par.register_maps == 1 && i==1
-                 file_id = [par.acquisitions{i}, '_reg_', flip_angles];
-                 if par.bB1_map == 1
-                     results =  pipelineR2sCorrectionWithPulseShape_v5_loadRegMaps(mag, phase, te, pulse, file_id, path_results, path_src_nii, z0, z0_vary,opts, B1_map);
-                 else
-                    results =  pipelineR2sCorrectionWithPulseShape_v5_loadRegMaps(mag, phase, te, pulse, file_id, path_results, path_src_nii, z0, z0_vary,opts);
-                 end
+              %start R2s estimation depending on paramters    
+              if par.bB1_map == 1
+                results =  pipelineR2sCorrectionWithPulseShape_v5(mag, phase, te, pulse, file_id, path_results, path_src_nii, z0, z0_vary(l),opts, B1_map);
               else
-                 if par.bB1_map == 1
-                    results =  pipelineR2sCorrectionWithPulseShape_v5(mag, phase, te, pulse, file_id, path_results, path_src_nii, z0, z0_vary(l),opts, B1_map);
-                 else
-                    results =  pipelineR2sCorrectionWithPulseShape_v5(mag, phase, te, pulse, file_id, path_results, path_src_nii, z0, z0_vary(l),opts);
-                 end
-             end
-             
-             
-              %Segment WM from MP2RAGE image and register mask on mGRE imags 
-              if par.bSienna == 1
-                 fwhm_str = num2str(z0);
-                 fwhm_str(fwhm_str == '.') = '_'; 
-                 fwhm_str = ['fwhm_', fwhm_str, '_mm']; 
-                 path_results = [par.path_pwd, '/results/R2s/', par.meas_id, '/', par.acquisitions{i}, '/', navi{k},'/', flip_angles, '/', fwhm_str]; 
-                 par.path_results = path_results; 
-                 par.file_id = file_id;
-                 performSIENNAandRegisterToGRE( par) 
+                results =  pipelineR2sCorrectionWithPulseShape_v5(mag, phase, te, pulse, file_id, path_results, path_src_nii, z0, z0_vary(l),opts);
               end
+      
    
              
           end
@@ -208,17 +184,5 @@ function [ data ] = prepareAndPerformR2sEstimation( par )
        end
     end
 
-    % Register both acquistions 
-
-    if par.register_maps == 1
-        ref_path =  [par.src_nii, file_names{par.idx_nii(2)}]; 
-        in_path =  [par.src_nii, file_names{par.idx_nii(1)}]; 
-        %destiation folder for registered images 
-        dst_folder_path =  [par.path_pwd, '/results/R2s/', par.meas_id, '/', par.acquisitions{1}];
-
-        if ~exist([dst_folder_path, '_reg'], 'dir')
-            registrationResults(ref_path, in_path, dst_folder_path);
-        end
-    end
 end
 

@@ -7,9 +7,8 @@ function [ res ] = pipelineR2sCorrectionWithPulseShape_v5(mag, phase, te, pulse,
 % function that includes several options (with, w/0 
 % B1 / slice broading/thinning) is  included. 
 % v5: The slice thickness of the foward simulation is changed to z0_vary to
-% allow a change of the slice slecection gradient. This improves the
-% results. If z0_vary = z0 calcuations are identical to the previous
-% calculatios. 
+% allow a change of the slice slecection gradient.If z0_vary = z0 calcuations 
+%are identical to the previous calculatios. 
 %
 %   Author: Martin Soellradl
 %   Department of Neurology, Medical University of Graz, Graz, Austria
@@ -105,7 +104,7 @@ function [ res ] = pipelineR2sCorrectionWithPulseShape_v5(mag, phase, te, pulse,
    
     
     %% If prelude flag is set data is unwrapped else it is is assumed that
-    % the phase is already unrwapped with PRELUDE!
+    % the phase is already unrwapped!
     
     if opts.bprelude == 1
         %prelude -p <phasevol> -a <absvol> -o <unwrappedphase> [options]
@@ -321,145 +320,55 @@ function [ res ] = pipelineR2sCorrectionWithPulseShape_v5(mag, phase, te, pulse,
     res.Gy = Gy;   
     res.Gz = Gz;
     
-    
 
-    
-    %% Estimate gradients from of phi0 if linear fit was performed
-    
-    
 
-    disp( ['Gradient estimation from phi0 map ', file_id,  '...']); 
-    path=[path_results '/Gradient_maps/', opts.B0_method, '/']; 
+    % ----------------------------------------------------------------
+    % Perform a monoexponential fit of the data (model S1)
+    % ----------------------------------------------------------------
+            
+
+    disp( ['Conventional monoexponential fit (S1) of the data ', file_id,  '...']); 
+    path=[path_results '/R2s_monoexp/']; 
     if ~exist(path, 'dir')
             mkdir(path); 
     end
 
-    Gx_path = [path, 'G_phi0x_finite_', opts.B0_method,'_', file_id , '.nii'];
-    Gy_path = [path, 'G_phi0y_finite_', opts.B0_method,'_', file_id , '.nii'];
-    Gz_path = [path, 'G_phi0z_finite_', opts.B0_method,'_', file_id , '.nii'];
-    Gmag_path = [path, 'Gmag_phi0_finite_', opts.B0_method,'_', file_id , '.nii'];
+    R2s_corr_path = [path, 'R2s_mono_', file_id, '.nii'];
+    A_corr_path = [path, 'A_mono_', file_id, '.nii'];
+    res_norm_path = [path, 'resnorm_mono_', file_id, '.nii'];
+    residuals_path = [path, 'residuals_mono_', file_id, '.nii'];
 
-    if ~exist(Gz_path, 'file')
+    if ~exist(R2s_corr_path, 'file')
 
-        [ G_phi0x, G_phi0y, G_phi0z] = gradient(phi0);
-        
-        G_phi0z = imgaussfilt3(G_phi0z,1); %filter gradient maps
-        G_phi0x = imgaussfilt3(G_phi0x,1);
-        G_phi0y = imgaussfilt3(G_phi0y,1);
-        
-        G_phi0x = G_phi0x.*mask; 
-        G_phi0y = G_phi0y.*mask; 
-        G_phi0z = G_phi0z.*mask; 
-
-        Gmag = sqrt(G_phi0x.^2 + G_phi0y.^2 + G_phi0z.^2); 
+        F_ones = ones(size(mag)); 
+        [R2s_mono, A_mono, resnorm_mono, residuals_mono] ...
+            = CorrectedR2sMapEstimationFnNonLinFit(mag, F_ones, te, mask);
 
         mkdir(path); 
         nii = opts.nii_template; 
 
-        nii.img = G_phi0x; 
-        save_untouch_nii(nii, Gx_path);
-        nii.img = G_phi0y; 
-        save_untouch_nii(nii, Gy_path);
-        nii.img = G_phi0z; 
-        save_untouch_nii(nii, Gz_path);
-        nii.img =  Gmag; 
-        save_untouch_nii(nii, Gmag_path);
+        nii.img = R2s_mono; 
+        save_untouch_nii(nii, R2s_corr_path);
+        nii.img =  A_mono; 
+        save_untouch_nii(nii, A_corr_path);
+        nii.img =  resnorm_mono; 
+        save_untouch_nii(nii, res_norm_path);
+        nii.img =  residuals_mono; 
+        save_untouch_nii(nii, residuals_path);
 
     else
-        tmp = load_untouch_nii(Gx_path); 
-        G_phi0x = double(tmp.img); 
-        tmp = load_untouch_nii(Gy_path); 
-        G_phi0y = double(tmp.img); 
-        tmp = load_untouch_nii(Gz_path); 
-        G_phi0z = double(tmp.img); 
+        tmp = load_untouch_nii(R2s_corr_path); 
+        R2s_mono = double(tmp.img); 
+        tmp = load_untouch_nii(A_corr_path); 
+        A_mono = double(tmp.img); 
+        tmp = load_untouch_nii(res_norm_path); 
+        resnorm_mono = double(tmp.img); 
+
     end
-
-    res.G_phi0x = G_phi0x;   
-    res.G_phi0y = G_phi0y;   
-    res.G_phi0z = G_phi0z;
+    res.R2s_mono = R2s_mono; 
     
     
-%      %% Perform CUDA fit of the non-corrected data 
-%     
-%     addpath('/media/data/physics/lukas/MATLAB/MRIDOG/CANDI/tin_R2star/matlab/clmf_expr2/');
-%     disp(['Estimate R2s with CUDA ', file_id,  '...']); 
-% 
-%     GRE = path_src_nii; 
-%     path=[path_results, '/R2s_cuda_cmd/']; 
-%     if ~exist(path); 
-%         mkdir(path); 
-%     end
-% 
-%     dst_nii = [path, 'R2s_cuda_', file_id, '.nii.gz'];
-%     if ~exist(dst_nii, 'file'); 
-%       
-%         %call "pure" Cuda fit without any preprocessing/filtering
-%         callCUDAR2sFit(GRE, dst_nii, te);
-%         
-%         %load map
-%         tmp = load_untouch_nii(dst_nii); 
-%         R2s_cuda = double(tmp.img); 
-%         R2s_cuda(isinf(R2s_cuda)) = 0;
-%         R2s_cuda(isnan(R2s_cuda)) = 0;
-%         
-%     else 
-%         tmp = load_untouch_nii(dst_nii); 
-%         R2s_cuda= double(tmp.img); 
-%         R2s_cuda(isinf(R2s_cuda)) = 0;
-%         R2s_cuda(isnan(R2s_cuda)) = 0;
-%     end
-%     
-%     res.R2s_cuda = R2s_cuda; 
-
-    
-
-%     %% Estimate R2s with an interative approach 
-% 
-%     
-%             disp( ['Corrected R2s estimation with Fn estimated from Bloch equations including B1 and phase of pulse', file_id,  '...']); 
-%             path=[path_results '/R2s_corr/Iterative_Wehrli/']; 
-%             if ~exist(path, 'dir')
-%                     mkdir(path); 
-%             end
-% 
-%             R2s_corr_path = [path, 'R2s_iterative_sinc_', file_id, '.nii'];
-%             A_corr_path = [path, 'A_iterative_sinc_', file_id, '.nii'];
-%             dw_sinc_path = [path, 'dw_sinc_', file_id, '.nii'];
-%             res_norm_path = [path, 'resnorm_iterative_sinc_', file_id, '.nii'];
-%             residuals_path = [path, 'residuals_iterative_sinc_', file_id, '.nii'];
-% 
-%             if ~exist(R2s_corr_path, 'file')
-% 
-%                 dw_z = Gz; %rad/(s z0)
-%                 [R2s_iter_sinc, A_iter_sinc, dw_iter_sinc, resnorm_map, residuals_map]...
-%                     = CorrectedR2sMapEstimationNonLinFit(mag, dw_z, te, mask)
-% 
-%                 mkdir(path); 
-%                 nii = opts.nii_template; 
-% 
-%                 nii.img = R2s_iter_sinc; 
-%                 save_untouch_nii(nii, R2s_corr_path);
-%                 nii.img =  A_iter_sinc; 
-%                 save_untouch_nii(nii, A_corr_path);
-%                 nii.img =  dw_iter_sinc; 
-%                 save_untouch_nii(nii, dw_sinc_path);
-%  
-%             else
-%                 tmp = load_untouch_nii(R2s_corr_path); 
-%                 R2s_iter_sinc = double(tmp.img); 
-% %                 tmp = load_untouch_nii(A_corr_path); 
-% %                 A_wB1_wphi0_noSlcCorr = double(tmp.img); 
-%                 tmp = load_untouch_nii(dw_sinc_path); 
-%                 dw_iter_sinc = double(tmp.img); 
-%             end
-%             res.R2s_iter_sinc = R2s_iter_sinc; 
-%             res.dw_fit_sinc = dw_iter_sinc; 
-%     
-%     
-%     
-%     
-%     
-%     
+   
     
 %% Estimate Fn function for the given data with the Preibisch model 
    
@@ -504,12 +413,64 @@ function [ res ] = pipelineR2sCorrectionWithPulseShape_v5(mag, phase, te, pulse,
     
     
 
-
+    % In case phi0 was also estimated from teh data (requires different
+    % coil combination) the gradient Gphi0z can also be included. 
     if isfield(opts, 'Gphi0z');      
-        if  opts.Gphi0z == 1
+        if  opts.Gphi0z == 1           
 
-            
+            %% Estimate gradients from of phi0 if linear fit was performed
+     
+            disp( ['Gradient estimation from phi0 map ', file_id,  '...']); 
+            path=[path_results '/Gradient_maps/', opts.B0_method, '/']; 
+            if ~exist(path, 'dir')
+                    mkdir(path); 
+            end
+        
+            Gx_path = [path, 'G_phi0x_finite_', opts.B0_method,'_', file_id , '.nii'];
+            Gy_path = [path, 'G_phi0y_finite_', opts.B0_method,'_', file_id , '.nii'];
+            Gz_path = [path, 'G_phi0z_finite_', opts.B0_method,'_', file_id , '.nii'];
+            Gmag_path = [path, 'Gmag_phi0_finite_', opts.B0_method,'_', file_id , '.nii'];
+        
+            if ~exist(Gz_path, 'file')
+        
+                [ G_phi0x, G_phi0y, G_phi0z] = gradient(phi0);
                 
+                G_phi0z = imgaussfilt3(G_phi0z,1); %filter gradient maps
+                G_phi0x = imgaussfilt3(G_phi0x,1);
+                G_phi0y = imgaussfilt3(G_phi0y,1);
+                
+                G_phi0x = G_phi0x.*mask; 
+                G_phi0y = G_phi0y.*mask; 
+                G_phi0z = G_phi0z.*mask; 
+        
+                Gmag = sqrt(G_phi0x.^2 + G_phi0y.^2 + G_phi0z.^2); 
+        
+                mkdir(path); 
+                nii = opts.nii_template; 
+        
+                nii.img = G_phi0x; 
+                save_untouch_nii(nii, Gx_path);
+                nii.img = G_phi0y; 
+                save_untouch_nii(nii, Gy_path);
+                nii.img = G_phi0z; 
+                save_untouch_nii(nii, Gz_path);
+                nii.img =  Gmag; 
+                save_untouch_nii(nii, Gmag_path);
+        
+            else
+                tmp = load_untouch_nii(Gx_path); 
+                G_phi0x = double(tmp.img); 
+                tmp = load_untouch_nii(Gy_path); 
+                G_phi0y = double(tmp.img); 
+                tmp = load_untouch_nii(Gz_path); 
+                G_phi0z = double(tmp.img); 
+            end
+        
+            res.G_phi0x = G_phi0x;   
+            res.G_phi0y = G_phi0y;   
+            res.G_phi0z = G_phi0z;
+            
+    
 
             % ----------------------------------------------------------------
             % Estiamte Fn inclduing the gradient of phi0 without B1/lambda  in 
@@ -597,7 +558,7 @@ function [ res ] = pipelineR2sCorrectionWithPulseShape_v5(mag, phase, te, pulse,
         
         
         
-        if bB1_map == 1
+        if bB1_map == 1 && opts.Gphi0z
             
 
             % ----------------------------------------------------------------
@@ -674,19 +635,19 @@ function [ res ] = pipelineR2sCorrectionWithPulseShape_v5(mag, phase, te, pulse,
 
             res.R2s_corr_BlochB1_wSlcCorr_Gphi0z = R2s_corr_BlochB1_wSlcCorr_Gphi0z; 
 
-            
+        end
              
             
             
             
             
-        end
+    end
 
-    end  
+
 % 
 %     ----------------------------------------------------------------
 %     Estimate Fn with Bloch equations and only the mag of the slice 
-%     profile
+%     profile (S2)
 %     ----------------------------------------------------------------
 
 
@@ -715,7 +676,7 @@ function [ res ] = pipelineR2sCorrectionWithPulseShape_v5(mag, phase, te, pulse,
 
 
 
-    disp( ['Corrected R2s estimation with Fn estimated from Bloch equations by just using the magnitude ', file_id,  '...']); 
+    disp( ['Corrected R2s estimation with Fn estimated from Bloch equations by just using the magnitude (S2) ', file_id,  '...']); 
     path=[path_results '/R2s_corr/BlochMagOnly/']; 
     if ~exist(path, 'dir')
             mkdir(path); 
@@ -759,88 +720,11 @@ function [ res ] = pipelineR2sCorrectionWithPulseShape_v5(mag, phase, te, pulse,
     % including B1-errors
     if bB1_map == 1
 
-   
+      
         % ----------------------------------------------------------------
-        % With B1 and and without slice correction
-        % ----------------------------------------------------------------
-       
-        
-        disp( ['Estimation of Fn by solving the Bloch equations for the slice profile including B1 errors ', file_id,  '...']); 
-        path=[path_results '/Fn_maps/BlochWithB1_noSlcCorr/']; 
-        if ~exist(path, 'dir')
-                mkdir(path); 
-        end
-
-        Fn_map_bloch_path = [path, 'Fn_map_BlochWithB1_noSlcCorr_', opts.B0_method,'_', file_id , '.nii'];
-
-        if ~exist(Fn_map_bloch_path, 'file')
-
-            bSlcCorr = 0; %no slice correction due to the field gradient
-             Gsus = Gz/(gamma*z0); %convert from rad/(s*slice_thicness) to mT/m
-            [ Fn_BlochWithB1] =  estimateFnMapFromCplxSliceProfileWithBlochEquations_v1(pulse, Gsus, z0_vary,  mask, te, bSlcCorr, B1_map);
-            
-
-            nii = opts.nii_template_4D;  
-            nii.img = Fn_BlochWithB1; 
-            save_untouch_nii(nii, Fn_map_bloch_path);
-        else
-            tmp = load_untouch_nii(Fn_map_bloch_path); 
-            Fn_BlochWithB1 = double(tmp.img); 
-
-        end
-        res.Fn_BlochWithB1 = Fn_BlochWithB1;
-        
-
-        
-        %Estimate corrected R2s Fn esitmate from the phase of the pulse after excitation 
-        disp( ['Corrected R2s estimation with Fn estimated from Bloch equations including B1 and phase of pulse', file_id,  '...']); 
-        path=[path_results '/R2s_corr/BlochWithB1_noSlcCorr/']; 
-        if ~exist(path, 'dir')
-                mkdir(path); 
-        end
-
-        R2s_corr_path = [path, 'R2s_corr_BlochWithB1_', file_id, '.nii'];
-        A_corr_path = [path, 'A_BlochWithB1_', file_id, '.nii'];
-        res_norm_path = [path, 'resnorm_BlochWithB1_', file_id, '.nii'];
-        residuals_path = [path, 'residuals_BlochWithB1_', file_id, '.nii'];
-
-        if ~exist(R2s_corr_path, 'file')
-
-            [R2s_corr_BlochWithB1, A_corr_BlochWithB1, resnorm_map_corr_BlochWithB1, residuals_map_corr_BlochWithB1] ...
-                = CorrectedR2sMapEstimationFnNonLinFit(mag, Fn_BlochWithB1, te, mask);
-
-            mkdir(path); 
-            nii = opts.nii_template; 
-
-            nii.img = R2s_corr_BlochWithB1; 
-            save_untouch_nii(nii, R2s_corr_path);
-            nii.img =  A_corr_BlochWithB1; 
-            save_untouch_nii(nii, A_corr_path);
-            nii.img =  resnorm_map_corr_BlochWithB1; 
-            save_untouch_nii(nii, res_norm_path);
-            nii.img =  residuals_map_corr_BlochWithB1; 
-            save_untouch_nii(nii, residuals_path);
-
-        else
-            tmp = load_untouch_nii(R2s_corr_path); 
-            R2s_corr_BlochWithB1 = double(tmp.img); 
-            tmp = load_untouch_nii(A_corr_path); 
-            A_corr_BlochWithB1 = double(tmp.img); 
-            tmp = load_untouch_nii(res_norm_path); 
-            resnorm_map_corr_BlochWithB1 = double(tmp.img); 
-        end
-
-        res.R2s_corr_BlochWithB1 = R2s_corr_BlochWithB1; 
-        %res.A_corr_BlochWithB1 = A_corr_BlochWithB1; 
-        %res.resnorm_map_corr_BlochWithB1 = resnorm_map_corr_BlochWithB1; 
-        
-
-        
-        % ----------------------------------------------------------------
-        % With B1 and with slice correction
+        % With B1 and with slice correction (S4)
         % ----------------------------------------------------------------
        
-        
 
         disp( ['Estimation of Fn by solving the Bloch equations for the slice profile including B1 errors and slice correction', file_id,  '...']); 
         path=[path_results '/Fn_maps/BlochWithB1_withSlcCorr/']; 
@@ -914,7 +798,7 @@ function [ res ] = pipelineR2sCorrectionWithPulseShape_v5(mag, phase, te, pulse,
 
     end
         % ----------------------------------------------------------------
-        % Without B1 and without slice correction
+        % Without B1 and without slice correction (S3)
         % ----------------------------------------------------------------
        
           
@@ -996,13 +880,6 @@ function [ res ] = pipelineR2sCorrectionWithPulseShape_v5(mag, phase, te, pulse,
         res.A_corr_BlochNoB1NoSlcCorr = A_corr_BlochNoB1NoSlcCorr; 
       %  res.resnorm_map_BlochNoB1NoSlcCorr = resnorm_map_BlochNoB1NoSlcCorr; 
       
-      
-      
-      
-
-
-
-    
 
 %     
 %     %% Estimate a corrected R2s with Fn from pulse shape wit Preibisch model

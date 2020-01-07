@@ -1,5 +1,17 @@
 %Example 1 demonstrates the influence of the slice selection polarity Gslice 
 %in presence of a macrospoic field gradient Gz. 
+% Script was used to generate Figure 1 in: 
+%
+%   Soellradl M, Lesch A, Strasser J, et al. 
+%   Assessment and correction of macroscopic field variations in 2D spoiled 
+%   gradient-echo sequences. Magn Reson Med. 2019;00:114
+%   https ://doi.org/10.1002/mrm.28139
+%
+% Author: Martin Soellradl
+% Department of Neurology, Medical University of Graz, Graz, Austria
+% email:martin.soellradl@medunigraz.at
+% Website: http://www.neuroimaging.com
+% Januray 2020; Last revision: 02-Januray-2020
 
 pulse.type = 'sinc-hanning'; 
 pulse.Tpulse = 2;               %ms 
@@ -41,7 +53,7 @@ theta = squeeze(theta);
 Mxy = squeeze(Mxy); 
 
 
-path = 'Simulations/mat_files/',
+path = 'results/Simulations/mat_files/',
 if exist(path, 'dir') == 0
             mkdir(path);   
 end
@@ -59,6 +71,8 @@ save([path, 'alpha'], 'alpha');
 save([path, 'pulse_cell'], 'pulse_cell'); 
 
 %% Sim dephasing 
+
+%macroscopic field gradient
 Gsus_vx = 0.1 %mT/m
 gamma = 267.51;                      % gyromagnetic ratio 42.57*2*pi in MHz/T
 te = [0:0.1:100]; %ms
@@ -73,7 +87,8 @@ for k=1:2;
             wz_mat = repmat(wz, [Nte, 1]); %Nte + 1 because of normalization
             te_mat = repmat(te', [1, Nq]); 
 
-            theta_mat = squeeze(repmat(theta(k,j,:,:), [Nte, 1])); 
+            theta_mat = squeeze(repmat(theta(k,j,:,:), [Nte, 1]));
+            
             %dephasing weighted with the profile and integrate
             Mxy_te = Mcplx_mat.*exp(1i*wz_mat.*te_mat*1E-3 + 1i.*theta_mat);
             S = squeeze(sum(Mxy_te, 2)); 
@@ -87,7 +102,7 @@ end
 
 %% 
 
-path = 'Simulations/Figures/PulseComparisionWithPhase/',
+path = 'results/Simulations/Figures/PulseComparisionWithPhase/',
 if exist(path, 'dir') == 0
             mkdir(path);   
 end
@@ -148,7 +163,6 @@ subplot(2,3,6);
 set(findall(gcf,'-property','FontSize'),'FontSize',F_size)
  
 fig_name = [path, 'sinc_normal_30_90deg']; 
-fig_name = [path, 'sinc_normal_30_90deg_print']; 
 print(fig_name,'-dpng',  '-r300');  print(fig_name,'-depsc'); 
     print(fig_name,'-dsvg');
 

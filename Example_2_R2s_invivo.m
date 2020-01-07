@@ -1,6 +1,6 @@
-%% Example of R2s esimtation in presence of macroscopic field variations. 
-%Script performs the steps for R2s estimation as described in for single 
-%subject: 
+%% Example of R2s esimtation in presence of macroscopic field variations for a 
+%single subject. 
+%Script performs the steps for R2s estimation as described in:
 %
 %   Soellradl M, Lesch A, Strasser J, et al. 
 %   Assessment and correction of macroscopic field variations in 2D spoiled 
@@ -13,12 +13,12 @@
 % Website: http://www.neuroimaging.com
 % Januray 2020; Last revision: 02-Januray-2020
 
+%% Set paths
 
-addpath('external_toolboxes'); 
-addpath('GRE_modelling_toolbox'); 
+addpath(genpath('external_toolboxes')); 
+addpath(genpath('GRE_modelling_toolbox')); 
 
 %% Load parameters of a single subject
-
 
 [ par_c ] = loadExampleSubjectInfoCell(  )
 
@@ -33,25 +33,6 @@ for i=1:length(par_c)
 end
 
 %%
-% noB1Slc_Gphi0z
-% acq_short = {'GsPos', 'GsNeg'}; 
-% sbj = fieldnames(data);
-% flip_angles{1} = 'alpha_85deg'; 
-% navi = {'navi_off', 'navi_on'}; 
-% SE = strel('disk',3); 
-% for i=1:length(sbj); 
-%    for j=1:length(par.acquisitions); 
-%        for k=1:length(navi); 
-%            R2s{i,j,k,1} = imrotate(getfield(data, sbj{i}, par.acquisitions{j},  'results', navi{k}, flip_angles{1}, 'R2s_corr_BlochNoB1NoSlcCorr'),90);  
-% 
-% 
-%            R2s_name{i,j,k,1} = [sbj{i}, ' ',  acq_short{j}, '' , navi{k}, ' R2s_corr_BlochNoB1NoSlcCorr ']; 
-% 
-%        end
-%    end
-% end
-% 
-% 
 
 
 

@@ -1,4 +1,4 @@
-function [Scomb_corr, Scomb_raw  ] = prepareAndCorrectRawData( dat_path, uncorr_folder_path, corr_folder_path, bdetrend, nii_headers)
+function [Scomb_corr, Scomb_raw  ] = prepareAndCorrectRawData( dat_path, uncorr_folder_path, corr_folder_path, bdetrend, nii_headers, bloadExample )
 %PREPAREANDCORRECTRAWDATA Loads data-file and performs f0 correction of hte
 %data. 
 %   @param dat_path           path to the Siemens data file 
@@ -23,12 +23,10 @@ function [Scomb_corr, Scomb_raw  ] = prepareAndCorrectRawData( dat_path, uncorr_
         mkdir(corr_folder_path); 
     end
     
-    if nargin == 5
-       bnii_hdr = 1;  
-    else
-       bnii_hdr = 0;   
+    if nargin < 6
+        bloadExample = 0; 
     end
-
+    bnii_hdr = 1; 
    
     if  exist( [uncorr_folder_path, 'mag_navi_off.nii.gz'], 'file') == 2
         tmp = load_untouch_nii([corr_folder_path, 'mag_navi_on.nii.gz']); 
@@ -46,8 +44,18 @@ function [Scomb_corr, Scomb_raw  ] = prepareAndCorrectRawData( dat_path, uncorr_
         
     else
 
-        [data_coil, hdr, PhaseEncDir] = readRAW_BS_3D(dat_path);
-        data_coil = single(data_coil); 
+        %In case no data file is provided for the example a mat file with
+        %the coil data and a header is loaded.
+        if ~bloadExample
+            [data_coil, hdr, PhaseEncDir] = readRAW_BS_3D(dat_path);
+        else
+            tmp = load([dat_path, '.mat']); 
+            data_coil = tmp.data_coil; 
+            tmp = load([fileparts(dat_path), '/hdr.mat']); 
+            hdr = tmp.hdr; 
+        end
+        
+        data_coil = single(data_coil);
         Nslices = size(data_coil,3);
         for i=1:Nslices; 
             disp(['Slice is ', num2str(i), ' out of ', num2str(size(data_coil,3))]); 
@@ -66,19 +74,10 @@ function [Scomb_corr, Scomb_raw  ] = prepareAndCorrectRawData( dat_path, uncorr_
             Nte = hdr.Phoenix.lContrasts; 
             te = cell2mat(hdr.Phoenix.alTE(1:Nte))/1000; 
 
-            %get echo times
-            Nte = hdr.Phoenix.lContrasts; 
-            te = cell2mat(hdr.Phoenix.alTE(1:Nte))/1000; 
-
             [ S_corr(:,:,i,:), S_raw(:,:,i,:),  diff_angle_fit{i}] = slicedNavigatorCorrection( raw_data, te, bdetrend);
 
         end
-
-%         if strcmp(PhaseEncDir, 'COL')
-%             S_corr = flip(permute(S_corr, [2,1,3,4]),2);
-%             S_raw = flip(permute(S_raw, [2,1,3,4]),2);
-%             
-%         end
+        
         %% Put data in correct slice order 
 
         Scomb_corr = zeros(size(S_corr));
