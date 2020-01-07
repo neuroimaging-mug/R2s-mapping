@@ -16,7 +16,7 @@ function [ data ] = prepareAndPerformMWFEstimation_v2( par )
     %% Convert the dcm files from to nifi (to get nifi header) and load 
     %headers 
        
-    if exist([par.src_nii, 'dcmHeaders.mat'], 'file') ~= 2
+    if exist([par.src_nii, 'dcm_header_short.mat'], 'file') ~= 2
         dicm2nii(par.src_dcm, par.src_nii); 
     end
     %load header
