@@ -2,7 +2,7 @@
 
 This repository cotains MATLAB scripts used in Soellrad et al. 2019 for R2* and myelin water fraction (MWF) estimation in presence of macroscopic field variations for 2D spoiled gradient-echo sequences. 
 
-To demonstrate the usage one simulation example and two in-vivo examples of a single subject for R2* and MWF mapping are provided. The in-vivo examples contain all steps starting from coil combination until the different maps obtained with the investigated models.  
+To demonstrate the usage one simulation example and two in-vivo examples of a single subject for R2* and MWF mapping are provided. The in-vivo examples contain all postprocessing steps from coil combination to the R2* and MWF maps obtained with the different models. 
 
 If you find the provided scripts useful for your work, please cite: 
 
@@ -20,7 +20,7 @@ Aigner CS, Clason C, Rund A, Stollberger R.
 
 ## Dependencies 
 
-The scripts were tested with [MATLB R2016b](https://www.matlab.com). Besides the external tools, which are provided in the repository, [FSL 5.0.9](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki) is required for PRELUDE phase unwrapping and brain extraction with BET to process data as described in the data. If FSL is not available, different options like simple thresholding for the brain mask, or a linear fit of delta omega instead of PRELUDE, exist.  
+The scripts were tested with [MATLB R2016b](https://www.matlab.com). Besides the external tools, which are provided in the repository, [FSL 5.0.9](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki) is required for PRELUDE phase unwrapping and brain extraction with BET to process data as described in the data. If FSL is not installed different options are available to perform calculations without FSL.   
 
 ## Examples
 
