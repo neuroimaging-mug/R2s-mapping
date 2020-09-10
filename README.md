@@ -1,5 +1,7 @@
 # 2D gradient-echo modelling 
 
+Update: Code and example of the paper "Adaptive slice‐specific z‐shimming for 2D spoiled gradient‐echo sequences" (https://doi.org/10.1002/mrm.28468) will be available by the end of September 2020. 
+
 This repository cotains MATLAB scripts used in Soellrad et al. 2019 for R2* and myelin water fraction (MWF) estimation in presence of macroscopic field variations for 2D spoiled gradient-echo sequences. 
 
 To demonstrate the usage one simulation example and two in-vivo examples of a single subject for R2* and MWF mapping are provided. The in-vivo examples contain all postprocessing steps from coil combination to the R2* and MWF maps obtained with the different models. 
