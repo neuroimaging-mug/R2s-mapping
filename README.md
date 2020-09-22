@@ -1,4 +1,4 @@
-# 2D gradient-echo modelling 
+# 2D gradient-echo modeling 
 
 Update: Code and example of the paper "Adaptive slice‐specific z‐shimming for 2D spoiled gradient‐echo sequences" (https://doi.org/10.1002/mrm.28468) is now available. 
 
